@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'; 
+import { Module } from '@nestjs/common';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import authConfig from './auth/config';
 import databaseConfig from './database/config';
@@ -17,12 +17,7 @@ import { RedisConfigService } from './redis/config.service';
   imports: [
     NestConfigModule.forRoot({
       isGlobal: true,
-      load: [
-        authConfig,
-        databaseConfig,
-        emailConfig,
-        redisConfig,
-      ],
+      load: [authConfig, databaseConfig, emailConfig, redisConfig],
       expandVariables: true,
       validationSchema: [
         authConfigSchema,
@@ -36,8 +31,8 @@ import { RedisConfigService } from './redis/config.service';
           database: databaseConfigSchema.parse(env),
           email: emailConfigSchema.parse(env),
           redis: redisConfigSchema.parse(env),
-        }
-      }
+        };
+      },
     }),
   ],
   providers: [
