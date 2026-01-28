@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import authConfig from './auth/config';
 import databaseConfig from './database/config';
@@ -13,6 +13,7 @@ import { DatabaseConfigService } from './database/config.service';
 import { EmailConfigService } from './email/config.service';
 import { RedisConfigService } from './redis/config.service';
 
+@Global()
 @Module({
   imports: [
     NestConfigModule.forRoot({

@@ -1,26 +1,94 @@
-import { Injectable } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { CreateAuthDto, LoginDto } from './dto/login.dto';
+import { RegisterDto, UpdateAuthDto } from './dto/register.dto';
+import * as argon2 from 'argon2';
+import { PrismaService } from 'src/common/prisma/prisma.service';
+import { MailerService } from 'src/common/mailer/mailer.service';
+import { JwtService } from '@nestjs/jwt';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
+import crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
-  create(createAuthDto: CreateAuthDto) {
-    return 'This action adds a new auth';
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailerService,
+  ) {}
+  private async hash(v: string): Promise<string> {
+    return await argon2.hash(v);
+  }
+  private async compareHashes(v: string, hash: string): Promise<boolean> {
+    return await argon2.verify(hash, v);
   }
 
-  findAll() {
-    return `This action returns all auth`;
+  private generateRefreshTokenPlain(): string {
+    return crypto.randomBytes(64).toString('base64url');
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
+  private generateAccessToken(user: JwtPayload) {
+    return this.jwtService.signAsync({
+      sub: user.sub,
+      email: user.email,
+    });
   }
 
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
+  private verifyAccessToken(token: string): Promise<JwtPayload> {
+    return this.jwtService.verifyAsync(token);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+  async register(dto: RegisterDto) {
+    const existedUser = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+    if (existedUser) throw new ConflictException('Email already exists');
+    const hashedPassword = await this.hash(dto.password);
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        password: hashedPassword,
+      },
+    });
+    const accessToken = await this.generateAccessToken({
+      sub: user.id,
+      email: user.email,
+    });
+    return { accessToken };
   }
+
+  async login(dto: LoginDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+    if (!user) throw new NotFoundException('Email not found');
+    const isPasswordValid = await this.compareHashes(
+      dto.password,
+      user.password,
+    );
+    if (!isPasswordValid) throw new ConflictException('Password is incorrect');
+    const accessToken = await this.generateAccessToken({
+      sub: user.id,
+      email: user.email,
+    });
+
+    const refreshToken = this.generateRefreshTokenPlain();
+    const refreshHash = await this.hash(refreshToken);
+    const expiresTime =  60; // 3 hours in seconds
+    const expiresAt = new Date(Date.now() + expiresTime * 1000);
+    await this.prisma.refreshToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: refreshHash,
+        isRevoked: false,
+        expiresAt,
+      },
+    });
+    return { user, accessToken, refreshToken };
+  }
+  
+   
 }

@@ -12,7 +12,9 @@ export class TaskAppointmentProcessor {
   ) {}
 
   @Process('sendReminder')
-  async sendReminder(job: Job) {
+  async sendReminder(
+    job: Job<{ appointmentId: string; userId: string; schedule: Date }>,
+  ) {
     this.logger.log(`Mengirim pengingat untuk janji temu ${job.id}`);
     const { appointmentId, userId, schedule } = job.data;
     await this.taskAppointmentService.sendAppointmentReminder(
