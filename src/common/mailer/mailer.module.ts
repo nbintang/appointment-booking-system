@@ -6,6 +6,7 @@ import { EmailConfigService } from 'src/config/email/config.service';
 @Module({
   imports: [
     NestMailerModule.forRootAsync({
+      inject: [EmailConfigService],
       useFactory: async (emailConfigService: EmailConfigService) => ({
         transport: {
           host: emailConfigService.host,

@@ -1,5 +1,5 @@
 import { MailerService as NestMailerService } from '@nestjs-modules/mailer';
-import { Injectable, LoggerService } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 interface MailOptions {
   to: string;
@@ -10,7 +10,7 @@ interface MailOptions {
 @Injectable()
 export class MailerService {
   constructor(
-    private readonly logger: LoggerService,
+    private readonly logger: Logger,
     private readonly mailerService: NestMailerService,
   ) {}
 

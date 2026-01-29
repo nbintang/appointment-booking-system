@@ -3,15 +3,68 @@ import {
   Get,
   Post,
   Body,
-  Patch,
-  Param,
-  Delete,
+  Res,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateAuthDto } from './dto/login.dto';
-import { UpdateAuthDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { Request, Response } from 'express';
+import { RegisterDto } from './dto/register.dto';
+import { AccessTokenGuard } from './guards/access-token.guard';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { User } from './decorators/user.decorator';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+  @Post('login')
+  async login(
+    @Res({ passthrough: true }) res: Response,
+    @Body() body: LoginDto,
+  ) {
+    const { accessToken, refreshToken, refreshTokenId } =
+      await this.authService.login(body);
+
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      sameSite: 'lax',
+    });
+    res.cookie('refresh_token_id', refreshTokenId, {
+      httpOnly: true,
+      sameSite: 'lax',
+    });
+
+    return { accessToken };
+  }
+
+  @Post('register')
+  async register(@Body() body: RegisterDto) {
+    return this.authService.register(body);
+  }
+  @Post('refresh-token')
+  async refreshToken(
+    @Res({ passthrough: true }) res: Response,
+    @Req() req: Request,
+  ) {
+    const refreshToken = req.cookies['refresh_token'];
+    const refreshTokenId = req.cookies['refresh_token_id'];
+    const { accessToken, refreshToken: newRefreshToken, refreshTokenId: newId } =
+      await this.authService.refreshToken({
+        refreshTokenPlain: refreshToken,
+        refreshTokenId,
+      });
+    res.cookie('refresh_token', newRefreshToken, {
+      httpOnly: true,
+      sameSite: 'lax',
+    });
+    res.cookie('refresh_token_id', newId, { httpOnly: true, sameSite: 'lax' });
+    return { accessToken };
+  }
+  @UseGuards(AccessTokenGuard)
+  @Get('profile')
+  async getProfile(@User() user: JwtPayload) {
+    const userId = user.sub;
+    return this.authService.getProfile(userId);
+  }
 }

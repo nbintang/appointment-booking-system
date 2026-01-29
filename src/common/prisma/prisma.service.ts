@@ -1,19 +1,26 @@
 import {
   Injectable,
   OnModuleInit,
-  LoggerService,
   OnModuleDestroy,
+  Logger,
 } from '@nestjs/common';
 import { PrismaClient } from 'generated/prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { DatabaseConfigService } from 'src/config/database/config.service';
 
 @Injectable()
 export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
-  constructor(private readonly logger: LoggerService) {
+  constructor(
+    private readonly logger: Logger,
+    private readonly dbConfigService: DatabaseConfigService,
+  ) {
+    const connectionString = `postgresql://${dbConfigService.username}:${dbConfigService.password}@${dbConfigService.host}:${dbConfigService.port}/${dbConfigService.database}?sslmode=${dbConfigService.sslMode}`;
+    const adapter = new PrismaPg({ connectionString });
     super({
-      adapter: null,
+      adapter,
       log: [
         { emit: 'event', level: 'query' },
         { emit: 'event', level: 'info' },

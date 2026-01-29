@@ -12,7 +12,7 @@ export class TaskRefreshTokenProcessor {
 
   @Process('cleanupExpiredRefreshTokens')
   async cleanupExpiredRefreshTokens() {
-    console.log('Menjalankan cleanup expired refresh tokens...');
+    this.logger.log('Starting cleanup expired refresh tokens');
     await this.taskRefreshTokenService.cleanupExpiredRefreshTokens();
   }
 }

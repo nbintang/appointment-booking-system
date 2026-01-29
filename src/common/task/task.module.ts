@@ -5,6 +5,12 @@ import { ConfigModule } from 'src/config/config.module';
 import { RedisConfigService } from 'src/config/redis/config.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from '../prisma/prisma.module';
+import { TaskRefreshTokenService } from './services/task-refresh-tokens.service';
+import { TaskAppoinmentScheduler } from './schedulers/task-appointment.scheduler';
+import { TaskRefreshTokenScheduler } from './schedulers/task-refresh-token.scheduler';
+import { TaskAppointmentProcessor } from './processors/task-appointment.processor';
+import { TaskRefreshTokenProcessor } from './processors/task-refresh-token.processor';
+
 @Module({
   imports: [
     PrismaModule,
@@ -25,6 +31,13 @@ import { PrismaModule } from '../prisma/prisma.module';
     BullModule.registerQueue({ name: 'refresh-tokens' }),
     ScheduleModule.forRoot(),
   ],
-  providers: [TaskAppointmentService],
+  providers: [
+    TaskAppointmentService,
+    TaskRefreshTokenService,
+    TaskAppoinmentScheduler,
+    TaskRefreshTokenScheduler,
+    TaskAppointmentProcessor,
+    TaskRefreshTokenProcessor,
+  ],
 })
 export class TaskModule {}

@@ -2,15 +2,17 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { CreateAuthDto, LoginDto } from './dto/login.dto';
-import { RegisterDto, UpdateAuthDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 import * as argon2 from 'argon2';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { MailerService } from 'src/common/mailer/mailer.service';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
-import crypto from 'crypto';
+import * as crypto from 'crypto';
+import { RefreshToken } from 'generated/prisma/browser';
 
 @Injectable()
 export class AuthService {
@@ -37,10 +39,6 @@ export class AuthService {
     });
   }
 
-  private verifyAccessToken(token: string): Promise<JwtPayload> {
-    return this.jwtService.verifyAsync(token);
-  }
-
   async register(dto: RegisterDto) {
     const existedUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -53,17 +51,18 @@ export class AuthService {
         password: hashedPassword,
       },
     });
-    const accessToken = await this.generateAccessToken({
-      sub: user.id,
-      email: user.email,
-    });
-    return { accessToken };
+    // const accessToken = await this.generateAccessToken({
+    //   sub: user.id,
+    //   email: user.email,
+    // });
+    return { message: 'User registered successfully' };
   }
 
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
+
     if (!user) throw new NotFoundException('Email not found');
     const isPasswordValid = await this.compareHashes(
       dto.password,
@@ -77,9 +76,9 @@ export class AuthService {
 
     const refreshToken = this.generateRefreshTokenPlain();
     const refreshHash = await this.hash(refreshToken);
-    const expiresTime =  60; // 3 hours in seconds
+    const expiresTime = 60;
     const expiresAt = new Date(Date.now() + expiresTime * 1000);
-    await this.prisma.refreshToken.create({
+    const tokenRow = await this.prisma.refreshToken.create({
       data: {
         userId: user.id,
         tokenHash: refreshHash,
@@ -87,8 +86,71 @@ export class AuthService {
         expiresAt,
       },
     });
-    return { user, accessToken, refreshToken };
+    return { user, accessToken, refreshToken, refreshTokenId: tokenRow.id };
   }
-  
-   
+
+  async refreshToken({
+    refreshTokenId,
+    refreshTokenPlain,
+  }: {
+    refreshTokenPlain: string;
+    refreshTokenId: string;
+  }) {
+    const tokenRow = await this.prisma.refreshToken.findUnique({
+      where: { id: refreshTokenId },
+      include: { user: true },
+    });
+
+    if (!tokenRow || tokenRow.isRevoked || tokenRow.expiresAt < new Date()) {
+      throw new UnauthorizedException('No active refresh token');
+    }
+
+    const ok = await this.compareHashes(refreshTokenPlain, tokenRow.tokenHash);
+    if (!ok) { 
+      await this.prisma.refreshToken.updateMany({
+        where: { userId: tokenRow.userId, isRevoked: false },
+        data: { isRevoked: true },
+      });
+      throw new UnauthorizedException('Refresh token invalid');
+    }
+ 
+    await this.prisma.refreshToken.update({
+      where: { id: tokenRow.id },
+      data: { isRevoked: true },
+    });
+ 
+    const accessToken = await this.generateAccessToken({
+      sub: tokenRow.userId,
+      email: tokenRow.user.email,
+    });
+ 
+    const newRefreshToken = this.generateRefreshTokenPlain();
+    const newHash = await this.hash(newRefreshToken);
+    const expiresTime = 60;  
+    const newExpiresAt = new Date(Date.now() + expiresTime * 1000);
+
+    const newRow = await this.prisma.refreshToken.create({
+      data: {
+        userId: tokenRow.userId,
+        tokenHash: newHash,
+        isRevoked: false,
+        expiresAt: newExpiresAt,
+      },
+      select: { id: true },
+    });
+
+    return {
+      accessToken,
+      refreshToken: newRefreshToken,
+      refreshTokenId: newRow.id,
+    };
+  }
+
+  async getProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    return user;
+  }
 }

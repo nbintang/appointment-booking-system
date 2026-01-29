@@ -27,12 +27,11 @@ import { RedisConfigService } from './redis/config.service';
         redisConfigSchema,
       ],
       validate: (env) => {
-        return {
-          auth: authConfigSchema.parse(env),
-          database: databaseConfigSchema.parse(env),
-          email: emailConfigSchema.parse(env),
-          redis: redisConfigSchema.parse(env),
-        };
+        authConfigSchema.parse(env);
+        databaseConfigSchema.parse(env);
+        emailConfigSchema.parse(env);
+        redisConfigSchema.parse(env);
+        return env;
       },
     }),
   ],

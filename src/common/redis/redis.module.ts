@@ -2,12 +2,17 @@ import { Module } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-store';
 import { RedisConfigService } from 'src/config/redis/config.service';
+import { PrismaModule } from '../prisma/prisma.module';
+import { LoggerModule } from '../logger/logger.module';
 @Module({
   imports: [
+    LoggerModule,
+    PrismaModule,
     CacheModule.registerAsync({
       isGlobal: true,
+      inject: [RedisConfigService],
       useFactory: async (redisConfigService: RedisConfigService) => ({
-        stores: await redisStore({
+        store: await redisStore({
           socket: {
             host: redisConfigService.host,
             port: redisConfigService.port,

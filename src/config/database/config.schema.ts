@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 export const databaseConfigSchema = z.object({
-  host: z.string().default('localhost'),
-  port: z.number().default(5432),
-  username: z.string().default('postgres'),
-  password: z.string().default('postgres'),
-  database: z.string().default('postgres'),
-  sslMode: z.string().default('disable'),
+  DATABASE_HOST: z.string().default('localhost'),
+  DATABASE_PORT: z.coerce.number().default(5432),
+  DATABASE_USERNAME: z.string().default('postgres'),
+  DATABASE_PASSWORD: z.string().default('postgres'),
+  DATABASE_DATABASE: z.string().default('postgres'),
+  DATABASE_SSL_MODE: z.string().default('disable'),
 });

@@ -12,34 +12,23 @@ export class TaskRefreshTokenService {
   ) {}
 
   async addCleanupRefreshTokenJob(): Promise<void> {
+    this.logger.log('Adding cleanup expired refresh tokens job');
     await this.refreshTokensQueue.add('cleanupExpiredRefreshTokens', {});
   }
 
   async cleanupExpiredRefreshTokens(): Promise<void> {
     this.logger.log('Starting cleanup of expired refresh tokens');
-    const expiredTokens = await this.prisma.refreshToken.findMany({
+    const result = await this.prisma.refreshToken.deleteMany({
       where: {
-        expiresAt: {
-          lt: new Date(),
-        },
-        isRevoked: false,
+        OR: [
+          { expiresAt: { lt: new Date() } },
+          {
+            isRevoked: true,
+            createdAt: { lt: new Date(Date.now() - 60_000) }, 
+          },
+        ],
       },
     });
-
-    if (expiredTokens.length > 0) {
-      this.logger.log(`Found ${expiredTokens.length} expired refresh tokens`);
-      await this.prisma.refreshToken.updateMany({
-        where: {
-          id: {
-            in: expiredTokens.map((token) => token.id),
-          },
-        },
-        data: {
-          isRevoked: true,
-        },
-      });
-    } else {
-      this.logger.log('No expired refresh tokens found');
-    }
+    this.logger.log(`Deleted ${result.count} expired refresh tokens`);
   }
 }
