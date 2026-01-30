@@ -31,16 +31,16 @@ export class PrismaService
   }
   async onModuleInit() {
     this.$on('query', (event) => {
-      this.logger.log(`Query: ${event.query}`);
+      this.logger.log(`[Query]: ${event.query}`);
     });
     this.$on('info', (event) => {
-      this.logger.log(`Info: ${event.message}`);
+      this.logger.log(`[Info]: ${event.message}`);
     });
     this.$on('warn', (event) => {
-      this.logger.log(`Warn: ${event.message}`);
+      this.logger.log(`[Warn]: ${event.message}`);
     });
     this.$on('error', (event) => {
-      this.logger.log(`Error: ${event.message}`);
+      this.logger.log(`[Error]: ${event.message}`);
     });
     await this.$connect();
   }

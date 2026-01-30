@@ -9,7 +9,7 @@ export class TaskRefreshTokenScheduler {
     private readonly taskRefreshTokenService: TaskRefreshTokenService,
   ) {}
 
-  @Cron(CronExpression.EVERY_30_SECONDS) 
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleTokenCleanup(): Promise<void> {
     this.logger.log('Starting token cleanup');
     await this.taskRefreshTokenService.addCleanupRefreshTokenJob();

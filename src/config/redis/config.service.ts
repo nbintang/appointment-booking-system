@@ -15,4 +15,24 @@ export class RedisConfigService {
   get password(): string {
     return this.configService.get<string>('redis.password', { infer: true });
   }
+
+  get dbQueue(): number {
+    return this.configService.get<number>('redis.dbQueue', { infer: true });
+  }
+
+  get dbCache(): number {
+    return this.configService.get<number>('redis.dbCache', { infer: true });
+  }
+
+  get queuePrefix(): string {
+    return this.configService.get<string>('redis.queuePrefix', { infer: true });
+  }
+
+  get cachePrefix(): string {
+    return this.configService.get<string>('redis.cachePrefix', { infer: true });
+  }
+
+  get cacheTtl(): number {
+    return this.configService.get<number>('redis.cacheTtl', { infer: true });
+  }
 }

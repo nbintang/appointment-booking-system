@@ -24,7 +24,7 @@ export class TaskRefreshTokenService {
           { expiresAt: { lt: new Date() } },
           {
             isRevoked: true,
-            createdAt: { lt: new Date(Date.now() - 60_000) }, 
+            createdAt: { lt: new Date(Date.now() - 60_000) },
           },
         ],
       },

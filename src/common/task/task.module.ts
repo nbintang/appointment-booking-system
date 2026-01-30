@@ -15,6 +15,7 @@ import { TaskRefreshTokenProcessor } from './processors/task-refresh-token.proce
   imports: [
     PrismaModule,
     ConfigModule,
+    ScheduleModule.forRoot(),
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [RedisConfigService],
@@ -22,14 +23,30 @@ import { TaskRefreshTokenProcessor } from './processors/task-refresh-token.proce
         redis: {
           host: redisConfigService.host,
           port: redisConfigService.port,
+          db: redisConfigService.dbQueue,
+          password: redisConfigService.password || undefined,
         },
-        password: redisConfigService.password || undefined,
-        database: parseInt(process.env.REDIS_DB ?? '0', 10),
+        prefix: redisConfigService.cachePrefix,
       }),
     }),
-    BullModule.registerQueue({ name: 'appointments' }),
-    BullModule.registerQueue({ name: 'refresh-tokens' }),
-    ScheduleModule.forRoot(),
+    BullModule.registerQueue({
+      name: 'appointments',
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: 1000,
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 1000 },
+      },
+    }),
+    BullModule.registerQueue({
+      name: 'refresh-tokens',
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: 1000,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 1000 },
+      },
+    }),
   ],
   providers: [
     TaskAppointmentService,

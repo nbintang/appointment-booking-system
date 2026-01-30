@@ -4,6 +4,7 @@ import { redisStore } from 'cache-manager-redis-store';
 import { RedisConfigService } from 'src/config/redis/config.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { LoggerModule } from '../logger/logger.module';
+import { RedisService } from './redis.service';
 @Module({
   imports: [
     LoggerModule,
@@ -18,11 +19,13 @@ import { LoggerModule } from '../logger/logger.module';
             port: redisConfigService.port,
           },
           password: redisConfigService.password || undefined,
-          database: parseInt(process.env.REDIS_DB ?? '0', 10),
+          db: redisConfigService.dbCache,
         }),
-        ttl: parseInt(process.env.REDIS_TTL ?? '5000', 10),
+        ttl: redisConfigService.cacheTtl,
       }),
     }),
   ],
+  providers: [RedisService],
+  exports: [RedisService],
 })
 export class RedisModule {}
