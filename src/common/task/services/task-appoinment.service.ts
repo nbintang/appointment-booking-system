@@ -2,11 +2,13 @@ import { InjectQueue } from '@nestjs/bull';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { Appointment } from 'generated/prisma/client';
+import { MailerService } from 'src/common/mailer/mailer.service';
 
 @Injectable()
 export class TaskAppointmentService {
   constructor(
     @InjectQueue('appointments') private readonly appointmentsQueue: Queue,
+    private readonly mailerService: MailerService,
   ) {}
 
   async addReminderQueue(appointment: Appointment): Promise<void> {
@@ -30,15 +32,16 @@ export class TaskAppointmentService {
     );
   }
 
-  async sendAppointmentReminder(
-    appointmentId: string,
-    userId: string,
-    schedule: Date,
-  ): Promise<void> {
-    console.log('Sending appointment reminder', {
-      appointmentId,
-      userId,
-      schedule,
+  async sendAppointmentReminder(obj: {
+    appointmentId: string;
+    userId: string;
+    schedule: Date;
+    userEmail: string;
+  }): Promise<void> {
+    await this.mailerService.sendEmail({
+      subject: 'Appointment Reminder',
+      to: obj.userEmail,
+      text: `This is a reminder for your appointment scheduled at ${obj.schedule.toISOString()}.`,
     });
   }
 }

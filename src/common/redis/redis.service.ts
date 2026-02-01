@@ -1,23 +1,7 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import { Cache } from 'cache-manager';
-
-class RedisKeyBuilder {
-  private readonly segments: (string | number)[] = [];
-
-  constructor(initialSegment: string | number) {
-    this.segments.push(initialSegment);
-  }
-
-  add(segment: string | number): this {
-    this.segments.push(segment);
-    return this;
-  }
-
-  toString(): string {
-    return this.segments.join(':');
-  }
-}
+import { RedisKeyBuilder } from './redis-key.builder';
 
 @Injectable()
 export class RedisService {

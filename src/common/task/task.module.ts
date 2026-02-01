@@ -10,11 +10,13 @@ import { TaskAppoinmentScheduler } from './schedulers/task-appointment.scheduler
 import { TaskRefreshTokenScheduler } from './schedulers/task-refresh-token.scheduler';
 import { TaskAppointmentProcessor } from './processors/task-appointment.processor';
 import { TaskRefreshTokenProcessor } from './processors/task-refresh-token.processor';
+import { MailerModule } from '../mailer/mailer.module';
 
 @Module({
   imports: [
     PrismaModule,
     ConfigModule,
+    MailerModule,
     ScheduleModule.forRoot(),
     BullModule.forRootAsync({
       imports: [ConfigModule],
