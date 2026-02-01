@@ -141,7 +141,7 @@ export class AuthService {
     };
   }
   async getProfile(userId: string) {
-    const key = `user:profile:${userId}`;
+    const key = this.redisService.useKey('user').add('profile').add(userId);
 
     const cachedUser = await this.redisService.get(key);
     if (cachedUser) return cachedUser;
